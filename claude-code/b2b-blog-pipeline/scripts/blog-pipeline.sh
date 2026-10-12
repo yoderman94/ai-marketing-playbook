@@ -137,8 +137,8 @@ PERMISSION_MODE="${BLOG_PERMISSION_MODE:-allowlist}"
 DEFAULT_ALLOWED_TOOLS="Read Write Edit MultiEdit Glob Grep WebSearch WebFetch TodoWrite"
 DEFAULT_ALLOWED_TOOLS+=" Bash(python3:*) Bash(curl:*) Bash(ls:*) Bash(cat:*) Bash(head:*) Bash(tail:*)"
 DEFAULT_ALLOWED_TOOLS+=" Bash(wc:*) Bash(grep:*) Bash(mkdir:*) Bash(cp:*) Bash(mv:*) Bash(date:*)"
-DEFAULT_ALLOWED_TOOLS+=" Bash(printf:*) Bash(echo:*) Bash(test:*) Bash(file:*) Bash(scripts/searxng-query.sh:*)"
-DEFAULT_ALLOWED_TOOLS+=" mcp__exa mcp__tavily mcp__ddgs mcp__firecrawl mcp__searxng"
+DEFAULT_ALLOWED_TOOLS+=" Bash(printf:*) Bash(echo:*) Bash(test:*) Bash(file:*) Bash(scripts/searxng-query.sh:*) Bash(scripts/ddgs-query.sh:*)"
+DEFAULT_ALLOWED_TOOLS+=" mcp__exa mcp__tavily mcp__firecrawl mcp__searxng"
 ALLOWED_TOOLS="${BLOG_ALLOWED_TOOLS:-$DEFAULT_ALLOWED_TOOLS}"
 case "$PERMISSION_MODE" in
     allowlist)

@@ -81,7 +81,7 @@ scripts/doctor.sh
 | Tool | Adds | Without it |
 |---|---|---|
 | [coreutils `timeout`](docs/TOOLS.md#timeout) | a time limit per stage | a hung stage can stall the batch |
-| [DuckDuckGo MCP](docs/TOOLS.md#duckduckgo-ddgs) | free news search in Stage 0 | logged and skipped |
+| [DuckDuckGo (ddgs)](docs/TOOLS.md#duckduckgo-ddgs) | free news and web search in Stage 0 (`scripts/ddgs-query.sh`) | logged and skipped |
 | [SearXNG](docs/TOOLS.md#searxng) + [Docker](docs/TOOLS.md#docker) | free metasearch in Stage 0 | logged and skipped |
 | [Firecrawl MCP](docs/TOOLS.md#firecrawl) | cheaper page fetches for the fact-check | Exa does the fetches |
 | [superpowers-chrome](docs/TOOLS.md#superpowers-chrome) + [Playwright](docs/TOOLS.md#python-packages) | Gemini Deep Research in Stage 0 | logged and skipped |

@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `VERSION` to `1.0.0` and start a fresh changelog for that vertical. The
 > entries below track the template itself, not any cloned pipeline.
 
+## [2.1.0] - 2026-10-12
+
+### Changed
+- Stage 0 Phase B3 runs DuckDuckGo through the bundled CLI wrapper `scripts/ddgs-query.sh` (text, `--news`, `--extract URL`, with backend fallback) instead of the ddgs MCP, and it is required on every job. Install the package with `python3 -m pip install -U ddgs`. The ddgs MCP is no longer needed. `scripts/doctor.sh` checks for the package, and the batch allowlist includes the wrapper.
+
 ## [2.0.2] - 2026-10-09
 
 ### Changed

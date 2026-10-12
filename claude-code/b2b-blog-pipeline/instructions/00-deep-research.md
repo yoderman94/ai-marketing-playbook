@@ -19,7 +19,7 @@ Run `scripts/doctor.sh` to see which ones this machine has.
 |---|---|---|
 | `mcp__exa__*` | Exa neural search, paid API | **Required.** Connect the Exa MCP. |
 | `mcp__tavily__*` | Tavily search, paid API with a credit cap | **Required.** Connect the Tavily MCP. |
-| `mcp__ddgs__*` | DuckDuckGo, free, no key | Phase B3 logs and continues |
+| `scripts/ddgs-query.sh` + the `ddgs` Python package | DuckDuckGo CLI, free, no key | Phase B3 logs and continues. Install: `python3 -m pip install -U ddgs` |
 | `mcp__searxng__*` | Self-hosted metasearch (default `localhost:8888`, see `services/searxng/`) | Phase B2 logs and continues |
 | `scripts/searxng-query.sh` | CLI wrapper for SearXNG | Optional. The MCP alone is enough. |
 | `scripts/gemini-deep-research.py` | Playwright script that drives Gemini Deep Research | Phase C is skipped |
@@ -200,24 +200,30 @@ the Phase E fact-check gate before anything is cited.
    `mcp__exa__web_fetch_exa` or `mcp__tavily__tavily_extract`. Phase E enforces this.
 5. If SearXNG is unavailable, note it and continue. It never fails the stage.
 
-### Phase B3 — DuckDuckGo (news and recent coverage, no quota)
+### Phase B3 — DuckDuckGo via the ddgs CLI (news and recent coverage, no quota). REQUIRED
 
-DuckDuckGo provides a free news feed and general web search with no API key and no
-daily quota. Use it to surface recent news articles, press releases, and
-trade-publication coverage. It is strongest on platform changes, industry
-announcements, and developments in the past 30 to 90 days that Exa and Tavily may not
-have indexed yet.
+DuckDuckGo is free, with no API key and no daily quota. Use it to surface recent news,
+press releases and trade coverage, above all for changes in the past 30 to 90 days that
+Exa and Tavily may not have indexed yet. **Run it on every job. Don't skip it as "not
+needed."**
 
-1. Call `mcp__ddgs__search_news` for each research question where recency matters:
+Use the CLI wrapper through Bash: `scripts/ddgs-query.sh` (`--news`, `--time d|w|m|y`,
+`--num N`, `--json`, `--extract URL`). It tries several backends and logs to `logs/ddgs.log`.
+
+1. Run at least one `--news` search per research question where recency matters:
    platform updates, industry announcements, recent case studies, seasonal news. Use
-   time range `m` for fast-moving topics, or omit it for broader coverage.
-2. Call `mcp__ddgs__search_text` for general web searches on questions where Exa and
-   SearXNG did not return strong Tier 1 coverage.
-3. For promising results, call `mcp__ddgs__extract_content` to pull the full page text.
+   `--time m` for fast-moving topics. Omit `--time` for broader coverage.
+2. Run at least one text search (no flag) on each question where Exa and SearXNG did not
+   return strong Tier 1 coverage.
+3. For promising results, pull the full page with `scripts/ddgs-query.sh --extract "URL"`
+   (free). Use `mcp__exa__web_fetch_exa` or `mcp__tavily__tavily_extract` when it returns
+   thin content.
 4. Discard anything on the competitor exclude list or that reads as a content farm.
 5. Before citing anything ddgs surfaces, confirm the content at its source page. Phase E
    enforces this.
-6. If ddgs is unavailable, note it and continue. It never fails the stage.
+6. Report the real counts in the sources line (`ddgs: N news, N text, N extracts, N usable`).
+   If the wrapper exits 1 (or the ddgs package is missing), retry once, then note it and
+   continue. It never fails the stage.
 
 ### Phase C — Gemini Deep Research (deep narrative pass, via local script)
 

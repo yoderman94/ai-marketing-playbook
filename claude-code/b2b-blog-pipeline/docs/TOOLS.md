@@ -27,7 +27,7 @@ Windows: run everything inside WSL 2 (Ubuntu) and follow the Linux steps.
 | [Exa MCP](#exa) | MCP server | Stage 0 discovery | **Required for Stage 0** | Paid API (free credits to start) |
 | [Tavily MCP](#tavily) | MCP server | Stage 0 precision search | **Required for Stage 0** | 1,000 free credits a month, then paid |
 | [coreutils `timeout`](#timeout) | CLI | time limit per stage | Recommended | Free |
-| [DuckDuckGo (ddgs) MCP](#duckduckgo-ddgs) | MCP server | Stage 0 news search | Optional | Free |
+| [DuckDuckGo (ddgs)](#duckduckgo-ddgs) | Python package + `scripts/ddgs-query.sh` | Stage 0 news and web search | Recommended | Free |
 | [SearXNG](#searxng) + its MCP | Docker service + MCP | Stage 0 metasearch | Optional | Free, self-hosted |
 | [Docker](#docker) | CLI + daemon | runs SearXNG (and self-hosted Firecrawl) | Optional | Free |
 | [Firecrawl MCP](#firecrawl) | MCP server | Stage 0 page fetching for the fact-check | Optional | Free self-hosted, or paid API |
@@ -74,7 +74,7 @@ How the pipeline calls it: `claude -p "<stage prompt>" --model <model> --effort 
 
 Headless stages can't stop to ask you for permission, so the script sets permissions up front. Choose with `BLOG_PERMISSION_MODE` in `.env`:
 
-- **`allowlist` (default).** `--permission-mode acceptEdits` plus `--allowedTools` with a fixed list: file read/write/edit, web search and fetch, a short list of shell commands (`python3`, `curl`, `ls`, `cat`, `mkdir`, `mv`, `cp` and similar), and the research MCP servers (`mcp__exa`, `mcp__tavily`, `mcp__ddgs`, `mcp__firecrawl`, `mcp__searxng`). Anything else is refused, and the stage notes it and continues. Change the list with `BLOG_ALLOWED_TOOLS`. If you named your MCP servers differently, add their names here.
+- **`allowlist` (default).** `--permission-mode acceptEdits` plus `--allowedTools` with a fixed list: file read/write/edit, web search and fetch, a short list of shell commands (`python3`, `curl`, `ls`, `cat`, `mkdir`, `mv`, `cp` and similar), the `scripts/searxng-query.sh` and `scripts/ddgs-query.sh` wrappers, and the research MCP servers (`mcp__exa`, `mcp__tavily`, `mcp__firecrawl`, `mcp__searxng`). Anything else is refused, and the stage notes it and continues. Change the list with `BLOG_ALLOWED_TOOLS`. If you named your MCP servers differently, add their names here.
 - **`bypass`.** `--dangerously-skip-permissions`. Every tool runs with no check, including any shell command. Use it only on a machine and account you'd let an unattended agent control, never on a machine with production credentials.
 
 Source for the flags: https://code.claude.com/docs/en/cli-reference
@@ -181,16 +181,16 @@ Puts a time limit on each stage (`BLOG_STAGE_TIMEOUT`, default `3h`), so one hun
 
 ## DuckDuckGo (ddgs)
 
-**Stage 0, Phase B3.** Free news and web search, no key, no quota. Optional.
+**Stage 0, Phase B3.** Free news and web search, no key, no quota. Required on every job; if it is missing, Phase B3 logs it and continues.
 
 - **Install** (Python 3.10+):
   ```bash
-  python3 -m pip install -U "ddgs[mcp]"
-  claude mcp add --scope user ddgs -- ddgs mcp
+  python3 -m pip install -U ddgs
   ```
-  With uv instead of pip: `claude mcp add --scope user ddgs -- uvx --from "ddgs[mcp]" ddgs mcp` (install uv with `curl -LsSf https://astral.sh/uv/install.sh | sh` or `brew install uv`).
+  Stage 0 calls it through `scripts/ddgs-query.sh` (text search, `--news`, `--extract URL`). No MCP server is needed.
+- **Check:** `scripts/ddgs-query.sh --num 3 "test query"` prints three results.
 - **If missing:** Phase B3 logs it and continues.
-- **Sources:** https://github.com/deedy5/ddgs, https://docs.astral.sh/uv/getting-started/installation/
+- **Sources:** https://github.com/deedy5/ddgs
 
 ## SearXNG
 

@@ -117,13 +117,18 @@ if [ "$REQUIRED_ONLY" -eq 0 ]; then
     fi
     check_cmd optional shellcheck "lint the shell scripts after you edit them" "$PKG shellcheck"
 
+    if python3 -c "import ddgs" >/dev/null 2>&1; then
+        ok "ddgs" "DuckDuckGo search for Stage 0 (scripts/ddgs-query.sh)"
+    else
+        miss optional "ddgs" "free news and web search in Stage 0" "python3 -m pip install -U ddgs"
+    fi
+
     # ------------------------------------------------------------ Stage 0 research
     section "Stage 0 research (MCP servers in Claude Code)"
     if command -v claude >/dev/null 2>&1; then
         MCP_LIST="$(claude mcp list 2>/dev/null || true)"
         for spec in "exa|required for Stage 0 (discovery)|docs/TOOLS.md#exa" \
                     "tavily|required for Stage 0 (precision search)|docs/TOOLS.md#tavily" \
-                    "ddgs|optional free search|docs/TOOLS.md#duckduckgo-ddgs" \
                     "firecrawl|optional page fetching|docs/TOOLS.md#firecrawl" \
                     "searxng|optional free metasearch|docs/TOOLS.md#searxng" \
                     "superpowers-chrome|optional, Gemini Deep Research|docs/TOOLS.md#superpowers-chrome"; do
