@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# RETIRED from blog Stage 0 on 2026-10-14. Kept for manual use only.
 """
 gemini-deep-research.py — drive Gemini Deep Research via Playwright, attached
 over CDP to the already-running superpowers-chrome browser. Zero Claude

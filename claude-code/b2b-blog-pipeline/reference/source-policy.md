@@ -1,7 +1,7 @@
 # Source Policy — [YOUR_VERTICAL] Marketing Research
 
 This file governs what kinds of sources Stage 0 research may pull from, and how the
-five research tools (Exa, Tavily, DuckDuckGo, SearXNG, Gemini Deep Research) should be
+four research tools (Exa, Tavily, DuckDuckGo, SearXNG) should be
 steered. It is read by `instructions/00-deep-research.md` before any searching. The
 principle is simple:
 
@@ -62,7 +62,7 @@ data, seasonality, consumer behavior, churn benchmarks.
 ## Tier 1 — Actively seek
 
 Steer Exa queries to describe these pages. Use Tavily `include_domains` to force-pull
-from them. Tell Gemini to prioritize them. Use them as steering cues for DuckDuckGo and
+from them. Use them as steering cues for DuckDuckGo and
 SearXNG search terms too.
 
 **Platform and official documentation**
@@ -156,5 +156,3 @@ promote this tier accordingly and say so here.
 - **DuckDuckGo** is news and general web search, with no domain-filter parameter. Apply
   the exclude list by discarding competitor results before you pull the page. Every URL
   must pass Phase E.
-- **Gemini Deep Research** is steered by prompt text only. The Stage 0 prompt embeds
-  this tier guidance and the exclusion list.

@@ -130,8 +130,7 @@ if [ "$REQUIRED_ONLY" -eq 0 ]; then
         for spec in "exa|required for Stage 0 (discovery)|docs/TOOLS.md#exa" \
                     "tavily|required for Stage 0 (precision search)|docs/TOOLS.md#tavily" \
                     "firecrawl|optional page fetching|docs/TOOLS.md#firecrawl" \
-                    "searxng|optional free metasearch|docs/TOOLS.md#searxng" \
-                    "superpowers-chrome|optional, Gemini Deep Research|docs/TOOLS.md#superpowers-chrome"; do
+                    "searxng|optional free metasearch|docs/TOOLS.md#searxng"; do
             name="${spec%%|*}"; rest="${spec#*|}"; why="${rest%%|*}"; doc="${rest#*|}"
             if printf '%s' "$MCP_LIST" | grep -qi "$name"; then
                 ok "mcp: $name"
@@ -150,10 +149,7 @@ if [ "$REQUIRED_ONLY" -eq 0 ]; then
         if http_up "$FC/"; then ok "Firecrawl" "$FC"; else miss optional "Firecrawl at $FC" "page fetching, Phase E" "start your Firecrawl instance, or unset FIRECRAWL_URL to use the hosted API"; fi
     fi
     check_cmd optional docker "runs SearXNG (and a self-hosted Firecrawl)" "https://docs.docker.com/get-docker/"
-    check_cmd optional node "the superpowers-chrome MCP runs on Node.js" "$PKG node"
-    if command -v python3 >/dev/null 2>&1; then
-        check_py optional playwright playwright "Gemini Deep Research script (Phase C)"
-    fi
+    check_cmd optional node "the SearXNG and Firecrawl MCPs run on Node.js" "$PKG node"
 
     # ------------------------------------------------------------ covers
     section "Stage 10 template covers (optional)"

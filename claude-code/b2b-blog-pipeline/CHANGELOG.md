@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `VERSION` to `1.0.0` and start a fresh changelog for that vertical. The
 > entries below track the template itself, not any cloned pipeline.
 
+## [2.2.0] - 2026-10-14
+
+### Removed
+- Gemini Deep Research is retired from Stage 0. Across multi-post batches about 30% of its
+  unique numeric and named claims failed verification, and it needed a signed-in browser.
+  Stage 0 now runs on Exa, Tavily, SearXNG and DuckDuckGo, with Firecrawl for fact-check
+  fetches. `instructions/00-deep-research.md` Phase C is a one-line retired note, and the
+  Gemini prompt section is gone.
+- `scripts/blog-pipeline.sh` has no research mode and no Gemini login gate. The old 2nd
+  argument (`all`, `no-gemini`, `yes`, `no`) and `BLOG_RESEARCH_MODE` are still accepted
+  and ignored, so old commands keep working.
+- The superpowers-chrome and Playwright setup steps, the `CHROME_*` and `GEMINI_*`
+  settings, and their `doctor.sh` checks. `scripts/gemini-*` stay in the repo, marked
+  retired, for manual use only.
+
 ## [2.1.0] - 2026-10-12
 
 ### Changed

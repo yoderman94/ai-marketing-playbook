@@ -15,7 +15,7 @@ Owner: `yoderman94`. Collaborator with push access: `CubeCreativeDesign`.
 ## Layout and ownership
 - `projects/`: paste-in Claude Project templates.
 - `cowork/private-schools/`: Cowork pipeline, Stage 0 plus 8 content stages, no scripts. Refreshed 2026-10-09 from the production schools pipeline (v1.14.0) and made generic.
-- `claude-code/b2b-blog-pipeline/`: the scripted pipeline, v2.1.0 (2026-10-12: ddgs CLI wrapper in Stage 0). It has its own VERSION, CHANGELOG and HANDOFF. It moved here from the standalone `CubeCreativeDesign/b2b-blog-pipeline-template` repo, which is archived (read-only, with a banner pointing here). Fix it here. Its scripts are forks of the private production scripts: a fix in one doesn't reach the other.
+- `claude-code/b2b-blog-pipeline/`: the scripted pipeline, v2.2.0 (2026-10-14: Gemini retired from Stage 0). It has its own VERSION, CHANGELOG and HANDOFF. It moved here from the standalone `CubeCreativeDesign/b2b-blog-pipeline-template` repo, which is archived (read-only, with a banner pointing here). Fix it here. Its scripts are forks of the private production scripts: a fix in one doesn't reach the other.
 
 ## What is verified (2026-10-09)
 | Check | Result |

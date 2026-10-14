@@ -31,9 +31,7 @@ Windows: run everything inside WSL 2 (Ubuntu) and follow the Linux steps.
 | [SearXNG](#searxng) + its MCP | Docker service + MCP | Stage 0 metasearch | Optional | Free, self-hosted |
 | [Docker](#docker) | CLI + daemon | runs SearXNG (and self-hosted Firecrawl) | Optional | Free |
 | [Firecrawl MCP](#firecrawl) | MCP server | Stage 0 page fetching for the fact-check | Optional | Free self-hosted, or paid API |
-| [superpowers-chrome](#superpowers-chrome) | Claude Code plugin | Stage 0 Gemini Deep Research | Optional | Free (needs a Google account) |
-| [Node.js](#nodejs) | CLI | runs the superpowers-chrome and SearXNG MCPs | Optional | Free |
-| [Playwright](#python-packages) | Python package | Stage 0 Gemini script | Optional | Free |
+| [Node.js](#nodejs) | CLI | runs the SearXNG and Firecrawl MCPs | Optional | Free |
 | [fontTools](#python-packages) | Python package | Stage 10 covers | Optional | Free |
 | [resvg](#resvg) | CLI | Stage 10 covers: SVG to PNG | Optional | Free |
 | [cwebp](#cwebp) | CLI | Stage 10 covers: WebP files | Optional | Free |
@@ -85,7 +83,7 @@ Source for the flags: https://code.claude.com/docs/en/cli-reference
 
 Runs the router, the QC checkers, the collect step, and the cover generator.
 
-- **Version:** 3.9 or newer (3.10+ if you also want Playwright).
+- **Version:** 3.9 or newer.
 - **macOS:** `brew install python`
 - **Linux:** `sudo apt install python3 python3-pip python3-venv`
 - **Check:** `python3 --version`
@@ -110,11 +108,8 @@ pip install -r requirements.txt
 |---|---|---|---|
 | `textstat` | **Required** | `scripts/qc-readability.py` (Stage 9) | Stage 9 fails |
 | `fonttools` | Optional | `cover-generator/scripts/make_cover.py` (Stage 10) | Stage 10 fails, logs it, and the job continues |
-| `playwright` | Optional | `scripts/gemini-deep-research.py` (Stage 0, Phase C) | Phase C is skipped |
 
-Playwright only attaches to the Chrome that superpowers-chrome already runs, so it shouldn't need a browser download. If it asks for one anyway, run `python3 -m playwright install chromium`.
-
-Sources: https://pypi.org/project/textstat/, https://playwright.dev/python/docs/api/class-browsertype
+Source: https://pypi.org/project/textstat/
 
 ---
 
@@ -238,29 +233,9 @@ Runs SearXNG, and Firecrawl if you self-host it.
   Set `FIRECRAWL_URL=http://127.0.0.1:3002` in `.env` so `doctor.sh` checks it.
 - **Source:** https://github.com/firecrawl/firecrawl-mcp-server
 
-## superpowers-chrome
-
-**Stage 0, Phase C.** A Claude Code plugin that runs its own Chrome with a saved profile. The pipeline uses that browser for Gemini Deep Research. Optional; Gemini adds a long narrative research pass.
-
-1. **Install** (inside an interactive `claude` session; needs Node.js 18+):
-   ```
-   /plugin marketplace add obra/superpowers-marketplace
-   /plugin install superpowers-chrome@superpowers-marketplace
-   ```
-2. **Sign in to Google once:** in a `claude` session, ask Claude to open https://gemini.google.com/app with the browser tool and show the window, then sign in by hand. The login stays in the plugin's profile.
-3. **Install Playwright:** `python3 -m pip install playwright`.
-4. **Check:** `scripts/gemini-auth-check.sh` prints `LOGGED IN` and exits 0.
-
-How it fits together: `scripts/gemini-auth-check.sh` asks Claude to look at Gemini through the plugin's `use_browser` tool and reports signed in or out. `scripts/gemini-deep-research.py` then attaches to that same Chrome over the DevTools protocol and runs Deep Research with no Claude tokens spent on the wait. It finds the Chrome debug port in the plugin's profile metadata, or uses `CHROME_CDP_PORT`.
-
-**Never start Chrome yourself on that profile.** A Chrome started with different cookie-encryption flags corrupts Google's session cookies and signs you out.
-
-- **If missing or signed out:** pass `no-gemini` to the pipeline, or let it skip Gemini. A signed-out browser stops the run at the preflight, so you don't waste a batch.
-- **Source:** https://github.com/obra/superpowers-chrome
-
 ## Node.js
 
-Runs the superpowers-chrome plugin (18+), the SearXNG MCP (22+), the Firecrawl MCP, and the npm install of Claude Code (22+).
+Runs the SearXNG MCP (22+), the Firecrawl MCP, and the npm install of Claude Code (22+).
 
 - **macOS:** `brew install node`
 - **Linux:** follow https://nodejs.org/en/download (the distro package is often too old)
@@ -329,8 +304,7 @@ Lints the shell scripts. Run it after you edit one: `shellcheck -S warning scrip
 | `scripts/qc-readability.py` | Reading grade, sentence length, em dashes, passive voice | `textstat` |
 | `scripts/qc-structure-check.py` | Heading levels, bold-as-heading, other structure rules | Python stdlib |
 | `scripts/collect-post.py` | Moves a finished post's files into `posts/<date>-<slug>/` | Python stdlib |
-| `scripts/gemini-auth-check.sh` | Is the superpowers-chrome browser signed in to Gemini? | `claude`, the plugin's `use_browser` |
-| `scripts/gemini-deep-research.py` | Runs Gemini Deep Research in that browser | `playwright` |
+| `scripts/gemini-auth-check.sh`, `scripts/gemini-deep-research.py` | Retired 2026-10-14 with Gemini; kept for manual use only | |
 | `scripts/searxng-query.sh` | Queries SearXNG from the shell | `curl`, `python3`, `docker` |
 | `cover-generator/scripts/make_cover.py` | One template cover | `fonttools`, `resvg`, `cwebp` |
 | `cover-generator/scripts/covers_from_drafts.py` | Covers for every dated draft | `make_cover.py` |

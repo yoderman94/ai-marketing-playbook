@@ -1,8 +1,8 @@
-# Stage 0 — Multi-Source Research (Exa + Tavily + DuckDuckGo + SearXNG + Gemini Deep Research)
+# Stage 0 — Multi-Source Research (Exa + Tavily + DuckDuckGo + SearXNG)
 
 You are running Stage 0 of the [YOUR_VERTICAL] blog pipeline for the slug provided in
 the BATCH MODE block at the bottom of this prompt. Your job is to gather research from
-five sources, merge them into one structured bundle, **fact-check every quote and
+four sources, merge them into one structured bundle, **fact-check every quote and
 statistic against its source**, and exit.
 
 **Do NOT write the blog post here. Do NOT generate the brief. This stage produces
@@ -22,8 +22,6 @@ Run `scripts/doctor.sh` to see which ones this machine has.
 | `scripts/ddgs-query.sh` + the `ddgs` Python package | DuckDuckGo CLI, free, no key | Phase B3 logs and continues. Install: `python3 -m pip install -U ddgs` |
 | `mcp__searxng__*` | Self-hosted metasearch (default `localhost:8888`, see `services/searxng/`) | Phase B2 logs and continues |
 | `scripts/searxng-query.sh` | CLI wrapper for SearXNG | Optional. The MCP alone is enough. |
-| `scripts/gemini-deep-research.py` | Playwright script that drives Gemini Deep Research | Phase C is skipped |
-| `scripts/gemini-auth-check.sh` | Preflight that confirms the browser is signed in to Gemini | Phase C is skipped |
 | `mcp__firecrawl__*` | Firecrawl page fetch: self-hosted (free) or the hosted API (paid) | Phase E falls through to Exa |
 
 **Only Exa and Tavily are load-bearing.** The stage produces a passing bundle on those
@@ -73,7 +71,7 @@ Required sections, in this order, in markdown:
 
 ## Topic Overview
 (2 to 4 paragraphs framing the topic, audience, and what was investigated. Note which
-of the five sources contributed and any that failed.)
+of the four sources contributed and any that failed.)
 
 ## Direct Quotes
 (For each: blockquote the exact text, then `(Source: Author/Speaker; Year — [Source Name](url))`.
@@ -96,7 +94,7 @@ findings, and anything flagged low-confidence. Every item in Direct Quotes and
 Statistics must be accounted for here.)
 
 ## Sources Visited
-(Plain list of every URL opened across all five tools, one per line. Used downstream
+(Plain list of every URL opened across all four tools, one per line. Used downstream
 for citation verification.)
 ```
 
@@ -110,37 +108,23 @@ aborted. Write a real, verified bundle, not a stub.
 
 These are observed constraints from running full multi-post batches. Plan around them.
 
-**Gemini Deep Research has no daily quota.** There is no roughly-six-per-day cap. That
-was an old holdover, removed 2026-07-03. Do not front-load or defer posts around a
-Gemini run limit. Gemini can still fail transiently or throw a one-off "Sorry, I can't
-help" error. Retry once in a fresh run. If it genuinely will not run for a post, log
-`STAGE0_GEMINI_BLOCKED` and ship the bundle on Exa and Tavily. Drafts do not need
-rewriting. Gemini is enrichment.
-
-**Re-verify every Gemini number.** Across multi-post batches, roughly **30% of Gemini's
-unique numeric and named claims fail verification.** That includes confident
-fabrications dressed in real-looking citations: invented statistics, nonexistent
-citations, fabricated case studies, inverted or misattributed findings, and stats
-laundered through aggregator blogs. Exa and Tavily did not do this.
-
-So use Gemini for narrative framing, story angles, and lead generation only. It does
-surface genuine sources the API tools miss. Phase E must fetch and confirm every
-Gemini-sourced figure at its primary source before it enters the bundle. For citable
-statistics, prefer Tavily first, because its result text contains the figure, then Exa,
-which is best at discovery and primary-source PDFs.
+**Why Gemini was retired (2026-10-14).** Across multi-post batches, roughly 30% of
+Gemini's unique numeric and named claims failed verification, and it needed a signed-in
+browser, which a server can't provide. Stage 0 now runs on Exa, Tavily, SearXNG and
+DuckDuckGo, with Firecrawl for fact-check fetches. For citable statistics, prefer Tavily
+first, because its result text contains the figure, then Exa, which is best at discovery
+and primary-source PDFs.
 
 **Claude usage window, when you orchestrate this pipeline with subagents.** Running the
 writing pipeline as parallel subagents will exhaust the 5-hour Claude usage window if
 you fan out too wide. A pacing that works: **at most 2 concurrent Opus writer
-subagents**, with the lighter research and merge subagents on Sonnet. Browser-driven
-Gemini runs are server-side and do not consume the Claude budget, so a single shared
-browser is the natural rate-limiter.
+subagents**, with the lighter research and merge subagents on Sonnet.
 
 ---
 
 ## Operating procedure
 
-Run the five sources in order, then merge, then fact-check. If any single source fails,
+Run the four sources in order, then merge, then fact-check. If any single source fails,
 log it and continue. The bundle must still be produced from whatever sources succeeded.
 
 ### Phase A — Exa (discovery)
@@ -225,49 +209,13 @@ Use the CLI wrapper through Bash: `scripts/ddgs-query.sh` (`--news`, `--time d|w
    If the wrapper exits 1 (or the ddgs package is missing), retry once, then note it and
    continue. It never fails the stage.
 
-### Phase C — Gemini Deep Research (deep narrative pass, via local script)
+### Phase C (retired)
 
-Gemini Deep Research runs through a standalone Playwright script, not live MCP browser
-clicks: `scripts/gemini-deep-research.py`. It attaches over CDP to
-the already-running superpowers-chrome Chrome and drives Deep Research end to end in
-one blocking call, so Stage 0 spends zero extra tokens on the 5 to 35 minute wait.
-
-The `gemini-auth-check.sh` preflight, run before Stage 0, guarantees Chrome is up and
-signed in. **Never launch Chrome yourself.**
-
-Do **not** drive Gemini directly via
-`mcp__plugin_superpowers-chrome_chrome__use_browser`, and do **not** use a dedicated
-Gemini MCP. Both are superseded by the script for this stage, and the MCP hits
-free-tier rate limits.
-
-1. Take the prompt below, under "The Gemini prompt to paste", substitute `[TOPIC]` with
-   `RESEARCH_TOPIC`, and write it to `research/.gemini-prompt-[SLUG].txt` (inside the
-   project, so the headless permission rules allow the write).
-2. Run:
-   ```
-   python3 scripts/gemini-deep-research.py \
-     --topic-file research/.gemini-prompt-[SLUG].txt \
-     --out research/[SLUG]-gemini-raw.md \
-     --timeout-minutes 35
-   ```
-3. Check the exit code:
-   - `0` — success. Read `research/[SLUG]-gemini-raw.md` into Phase D. The file holds
-     the report body, then `## Sources Used` and `## Sources Reviewed But Not Cited`.
-   - `1` (login wall or bot challenge) or `2` (Deep Research toggle not found) — this is
-     the `STAGE0_GEMINI_BLOCKED` or `STAGE0_NO_DEEP_RESEARCH_MODE` condition. Log it and
-     **skip Gemini.** Do not abort the stage. Continue to Phase D with the other
-     sources.
-   - `3` (plan-confirmation timeout), `4` (poll timeout past 35 minutes), or `5`
-     (extraction failed, or the report is too short) — retry once. A fresh run can clear
-     a transient glitch. If it fails again, log it and skip Gemini.
-
-   The script already saves a screenshot and an HTML dump of whatever went wrong to
-   `logs/gemini-failures/`. Do not capture one yourself. Those files show a signed-in
-   Google page, so never copy them out of `logs/` (which git ignores).
+Phase C (Gemini Deep Research) was retired on 2026-10-14. Do not run it.
 
 ### Phase D — Merge and dedupe
 
-1. Combine the findings from all five sources into the required section structure.
+1. Combine the findings from all four sources into the required section structure.
 2. Dedupe. When two tools surface the same statistic, keep one entry and note both as
    corroborating in Verification Notes. When two sources conflict, keep both and flag
    the conflict.
@@ -315,144 +263,10 @@ has been confirmed against its source, or is explicitly flagged. Stage 2 blocks 
 
 ---
 
-## The Gemini prompt to paste (verbatim, with [TOPIC] substituted)
-
-```
-<role>
-
-You are an expert content research specialist for a digital marketing agency that
-serves small to medium [YOUR_VERTICAL] companies. You excel at surfacing current,
-primary-source statistics, expert quotes, and case studies, and at verifying every
-source by tracing it to its origin.
-
-You only deliver direct expert quotes (no paraphrasing) and actionable, sourced
-findings.
-
-</role>
-
-<task>
-
-* Conduct thorough research on the topic I provide.
-* Gather direct quotes and statistics from authoritative primary sources.
-* Verify all information and ensure links are accessible and contain the referenced
-  content.
-* Be honest and flag anything you cannot verify.
-
-</task>
-
-<audience>
-
-The finished blog post is read by owners and decision-makers at small to medium
-[YOUR_VERTICAL] companies, the readers named in the topic below, who are deciding
-whether to hire a marketing agency. They are not consumers. They know their trade, and
-they fact-check any number about it.
-
-Your report is read first by a brief writer, who builds the post outline from it,
-and then by the post writer, who quotes and cites it. Neither one redoes your research,
-so give them findings they can use as written.
-
-</audience>
-
-<intent>
-
-Your findings become the fact base for a blog post published on our agency's site,
-under our byline. Every statistic and quote may be cited and linked in public, so each
-one must trace to a primary source a reader can open. The same facts are reused in the
-post's TL;DR, its FAQ, and its title and meta description. An error repeats in all of
-them.
-
-Not wanted: general background nobody will cite, consumer how-to advice, undated
-figures, and statistics you cannot trace to their origin.
-
-</intent>
-
-<source_priority>
-
-Prioritize sources in this order for [YOUR_VERTICAL] MARKETING topics:
-
-1. Official platform documentation (Google Business Profile, Local Services Ads,
-   Google Ads, Google Search Central, Think with Google).
-2. Government and public data (Bureau of Labor Statistics, U.S. Census, FTC, SBA, and
-   your vertical's regulator).
-3. [YOUR_VERTICAL] trade bodies and publications ([YOUR_VERTICAL_ASSOCIATION], the main
-   trade magazines, state associations).
-4. Marketing research firms that disclose methodology (BrightLocal, Moz, Whitespark,
-   Pew Research).
-
-Academic and peer-reviewed journals are a minor source for this topic set. There is no
-peer-reviewed literature on tactics like Google Business Profile optimization. Use
-academic sources only where they genuinely apply (consumer decision behavior, trust and
-reputation psychology). Do NOT pad the report with journal searches for
-marketing-tactic claims.
-
-For platform and algorithm claims (anything about how Google products or ad systems
-behave), prefer sources from the last 18 months. These products change constantly. For
-market-size, labor, and demographic data, the most authoritative dataset wins even if
-it is a year or two old.
-
-DO NOT cite or link any competitor agency. The excluded domains are:
-
-[PASTE THE DOMAIN LIST FROM reference/competitors.md HERE AT RUN TIME]
-
-Also avoid content farms, circular "stats roundup" aggregators with no traceable
-original source, undated pages making time-sensitive claims, and forum posts as a
-primary statistic source.
-
-</source_priority>
-
-<citation_requirements>
-
-For every piece of information:
-
-1. Include a direct markdown link to the source: [Source Name](url)
-2. Before citing, verify the link is accessible and the information actually appears on
-   the page.
-3. For direct quotes, use markdown blockquotes (>) and name the author/source.
-4. For statistics, specify the date of the data, sample size, and methodology when
-   available.
-5. Evaluate source credibility on Authority, Currency, Accuracy, and Purpose.
-6. Flag any information you could not adequately verify.
-
-Never cite a link without first checking that it is accessible, contains the referenced
-information, and is a credible source.
-
-</citation_requirements>
-
-<output_format>
-
-Use markdown. Organize your findings as:
-
-## Topic Overview
-Brief introduction to the topic and key aspects of your research.
-
-## Direct Quotes
-For each: blockquote, then (Source: Author/Speaker; Year — [Source Name](url))
-
-## Statistics and Data
-For each: the statistic, then (Source: Organization, Title; Year — [Source Name](url)),
-then **Methodology:** sample size and data collection when available.
-
-## Additional Resources
-Markdown list of valuable further-reading sources with proper links.
-
-## Verification Notes
-Notes on source verification, limitations, or conflicting information.
-
-</output_format>
-
-Respond with "I'll research [TOPIC], prioritizing platform documentation, government
-data, [YOUR_VERTICAL] industry sources, and methodology-backed marketing research, and
-I'll verify every link." Then proceed.
-
-The topic: [TOPIC]
-```
-
----
-
 ## Style and project rules apply
 
 This stage is read-only on the filesystem except for writing the research file, plus
-screenshots and log lines to `logs/`. Do not modify `output/`, `instructions/`, or
+log lines to `logs/`. Do not modify `output/`, `instructions/`, or
 anything outside `research/` and `logs/`.
 
 Project rules from `CLAUDE.md` apply: the audience is [YOUR_VERTICAL] company
@@ -474,5 +288,5 @@ Exit 0 only if both hold:
 
 Otherwise exit non-zero so the batch caller marks the blog aborted.
 
-Gemini being skipped does **not** by itself cause a non-zero exit, as long as Exa and
-Tavily produced a passing, fact-checked bundle.
+A free source (SearXNG or DuckDuckGo) being skipped does **not** by itself cause a non-zero
+exit, as long as Exa and Tavily produced a passing, fact-checked bundle.

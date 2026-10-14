@@ -5,4 +5,3 @@
 
 textstat>=0.7        # required: Stage 9 readability check (scripts/qc-readability.py)
 fonttools>=4.40      # optional: Stage 10 template covers (cover-generator/)
-playwright>=1.40     # optional: Stage 0 Gemini Deep Research (scripts/gemini-deep-research.py)

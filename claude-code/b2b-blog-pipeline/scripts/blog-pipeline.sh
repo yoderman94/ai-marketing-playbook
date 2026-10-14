@@ -30,16 +30,17 @@ set -euo pipefail
 # --- Input validation --------------------------------------------------------
 usage() {
     cat >&2 <<'USAGE'
-Usage: scripts/blog-pipeline.sh [project-dir] [all|no-gemini] [skip-router]
+Usage: scripts/blog-pipeline.sh [project-dir] [mode] [skip-router]
 
   project-dir   The blog project folder. Defaults to this repo (the folder above scripts/).
-  all           Stage 0 runs every research source, Gemini included (default).
-  no-gemini     Stage 0 skips the Gemini browser pass. Exa and Tavily still run.
+  mode          Ignored. Gemini was retired from Stage 0 on 2026-10-14, so there is no
+                research mode any more. The old values (all, no-gemini, yes, no) are
+                still accepted so old commands keep working.
   skip-router   Reuse inputs/.manifest.json from the last run instead of re-classifying.
 
 Examples:
-  scripts/blog-pipeline.sh                      # this repo, all sources
-  scripts/blog-pipeline.sh . no-gemini          # no browser research
+  scripts/blog-pipeline.sh                      # this repo
+  scripts/blog-pipeline.sh . all skip-router    # reuse the last manifest
   scripts/blog-pipeline.sh ~/blogs/my-vertical  # another clone of this template
 
 Settings come from environment variables or a .env file in the project folder.
@@ -112,8 +113,6 @@ MANIFEST_FILE="$PROJECT_DIR/inputs/.manifest.json"
 ROUTER_SCRIPT="$SCRIPTS_DIR/router.py"
 QC_SCRIPT="$SCRIPTS_DIR/qc.sh"
 COLLECT_SCRIPT="$SCRIPTS_DIR/collect-post.py"
-GEMINI_AUTH_SCRIPT="$SCRIPTS_DIR/gemini-auth-check.sh"
-GEMINI_RESEARCH_SCRIPT="$SCRIPTS_DIR/gemini-deep-research.py"
 
 # Sleep timers (seconds). Set any of them to 0 for back-to-back runs.
 SLEEP_AFTER_SONNET_LIGHT="${BLOG_SLEEP_SONNET_LIGHT:-30}"   # lightweight stage (Stage 5 URL/slug)
@@ -159,15 +158,10 @@ if [ -n "${BLOG_CLAUDE_EXTRA_ARGS:-}" ]; then
     read -r -a CLAUDE_EXTRA_ARGS <<< "$BLOG_CLAUDE_EXTRA_ARGS"
 fi
 
-# RESEARCH_MODE: "all" (every source, Gemini included) or "no-gemini".
-# The older values "yes" and "no" still work.
-RESEARCH_MODE="${2:-${BLOG_RESEARCH_MODE:-all}}"
-case "$RESEARCH_MODE" in
-    yes) RESEARCH_MODE="all" ;;
-    no)  RESEARCH_MODE="no-gemini" ;;
-    all|no-gemini) ;;
-    *) echo "ERROR: research mode must be all or no-gemini (got: $RESEARCH_MODE)" >&2; usage; exit 1 ;;
-esac
+# The 2nd argument used to pick a research mode (all / no-gemini / yes / no). Gemini was
+# retired from Stage 0 on 2026-10-14, so the argument is accepted and ignored. It keeps
+# its place so the 3rd argument (skip-router) still works.
+RESEARCH_MODE_ARG="${2:-${BLOG_RESEARCH_MODE:-}}"
 SKIP_ROUTER="${3:-}"
 
 # Read one field from the manifest. Values travel as arguments, never pasted into
@@ -224,7 +218,10 @@ echo "================================================================" | tee "$
 echo "BLOG PIPELINE - $PROJECT_NAME" | tee -a "$LOG_FILE"
 echo "Started: $(date)" | tee -a "$LOG_FILE"
 echo "Project: $PROJECT_DIR" | tee -a "$LOG_FILE"
-echo "Research mode: $RESEARCH_MODE (Stage 0 = Exa + Tavily$([ "$RESEARCH_MODE" = "all" ] && echo " + Gemini"))" | tee -a "$LOG_FILE"
+echo "Stage 0 sources: Exa + Tavily + SearXNG + ddgs + Firecrawl" | tee -a "$LOG_FILE"
+if [ -n "$RESEARCH_MODE_ARG" ]; then
+    echo "NOTE - Gemini was retired from Stage 0 on 2026-10-14; research-mode argument '$RESEARCH_MODE_ARG' ignored." | tee -a "$LOG_FILE"
+fi
 echo "Permissions: $PERMISSION_MODE" | tee -a "$LOG_FILE"
 echo "Models: standard=$MODEL_SONNET writing=$MODEL_OPUS research=$MODEL_RESEARCH" | tee -a "$LOG_FILE"
 echo "Skip router: ${SKIP_ROUTER:-no}" | tee -a "$LOG_FILE"
@@ -298,16 +295,6 @@ if [ "${BLOG_SKIP_MCP_CHECK:-0}" != "1" ]; then
             echo "$(date): WARNING - MCP server '$_srv' is not connected. Stage 0 research will be thin. See docs/TOOLS.md#$_srv" | tee -a "$LOG_FILE"
         fi
     done
-fi
-
-# --- Research mode notes -----------------------------------------------------
-# Exa + Tavily are MCP/API tools and run safely per job in any batch size.
-# Gemini Deep Research drives a single shared Chrome session, so in multi-job runs it
-# executes sequentially, one job at a time. The instruction file lets Gemini be skipped
-# gracefully (login wall / no Deep Research mode) without aborting the job, so a
-# multi-job run still completes on Exa + Tavily if the browser pass is unavailable.
-if [ "$RESEARCH_MODE" = "all" ] && [ "$JOB_COUNT" -gt 1 ]; then
-    echo "$(date): NOTE - multi-job run; Gemini Deep Research will run sequentially per job" | tee -a "$LOG_FILE"
 fi
 
 # --- Safety pause ------------------------------------------------------------
@@ -499,42 +486,18 @@ while [ "$JOB_INDEX" -lt "$JOB_COUNT" ]; do
     fi
 
 # ----------------------------------------------------------------------------
-# STAGE 0: Multi-Source Research (Exa + Tavily + Gemini) + fact-check gate
+# STAGE 0: Multi-Source Research (Exa + Tavily + SearXNG + ddgs + Firecrawl) + fact-check gate
 # Runs for every job entering at stage <= 1. Output contract:
 # research/${SLUG}-research.md with ## Direct Quotes and ## Statistics and Data, >= 4 KB.
 # ----------------------------------------------------------------------------
 if [ "$FROM_STAGE" -le 1 ]; then
 
-# Preflight gate: the Gemini pass needs a Chrome that the superpowers-chrome MCP
-# runs, signed in to Google. Check the login up front, so a logged-out browser
-# doesn't waste the run. Only gates when Gemini is in play (RESEARCH_MODE=all).
-#   0 = signed in        1 = signed out (abort)      2 = can't tell (go on)
-#   anything else = the check itself is broken: skip Gemini for this run, never
-#   report it as a confirmed login.
-if [ "$RESEARCH_MODE" = "all" ]; then
-    echo "$(date): Preflight - checking the Gemini login (superpowers-chrome browser)" | tee -a "$LOG_FILE"
-    GATE_RC=0
-    if [ -x "$GEMINI_AUTH_SCRIPT" ]; then
-        "$GEMINI_AUTH_SCRIPT" --gate --notify problem >> "$LOG_FILE" 2>&1 || GATE_RC=$?
-    else
-        GATE_RC=127
-    fi
-    case "$GATE_RC" in
-        0) echo "$(date): Preflight OK - Gemini login confirmed." | tee -a "$LOG_FILE" ;;
-        1) echo "$(date): ABORT - Gemini is signed out. Open the browser (use_browser show_browser), sign in, and rerun. Or rerun with no-gemini." | tee -a "$LOG_FILE"
-           exit 1 ;;
-        2) echo "$(date): WARN - Gemini login check was inconclusive; going on. Stage 0 skips Gemini if it meets a login wall." | tee -a "$LOG_FILE" ;;
-        *) echo "$(date): WARN - the Gemini login check could not run (exit $GATE_RC). Skipping Gemini for this run (no-gemini)." | tee -a "$LOG_FILE"
-           RESEARCH_MODE="no-gemini" ;;
-    esac
-fi
-
 # `|| true`: the script runs under `set -e`, and a usage-log write must never abort a batch.
 printf '%s\tRUN\tproject=%s\tslug=%s\tmode=%s\tlog=%s\n' \
-    "$(date +%Y-%m-%dT%H:%M:%S)" "$PROJECT_NAME" "$SLUG" "$RESEARCH_MODE" \
+    "$(date +%Y-%m-%dT%H:%M:%S)" "$PROJECT_NAME" "$SLUG" "no-gemini" \
     "$(basename "$LOG_FILE")" >> "$QUOTA_LEDGER" || true
 
-run_stage 0 "Multi-Source Research (Exa + Tavily + Gemini)" "$MODEL_RESEARCH" "medium" "
+run_stage 0 "Multi-Source Research (Exa + Tavily + SearXNG + ddgs + Firecrawl)" "$MODEL_RESEARCH" "medium" "
 CRITICAL RULES:
 1. Do NOT ask for input, confirmation, or permission at any point.
 2. Do NOT stop and wait for a response.
@@ -543,7 +506,7 @@ CRITICAL RULES:
 5. Stay in the project directory tree.
 6. Use the tools you have. If a tool is refused, note it and continue. Never ask 'should I proceed?'
 
-## TASK: Gather verified research from three sources for slug: $SLUG
+## TASK: Gather verified research from every Stage 0 source for slug: $SLUG
 
 ### Step 1: Read instructions
 Read instructions/00-deep-research.md in full. Follow every phase exactly.
@@ -557,21 +520,13 @@ Read $PRIMARY_INPUT and any files in inputs/ to derive RESEARCH_TOPIC (a one-par
 topic spec with audience constraints). If a brief already exists at
 briefs/${SLUG}-brief.md, use it to sharpen the topic.
 
-### Step 3: Run all three sources
+### Step 3: Run every source
 - Phase A: Exa (mcp__exa__web_search_exa / web_fetch_exa) - discovery.
 - Phase B: Tavily (mcp__tavily__tavily_search / tavily_extract / tavily_research) -
   precision; always pass the competitor exclude_domains; date-gate platform claims.
-- Phase C: Gemini Deep Research via the standalone script
-  $GEMINI_RESEARCH_SCRIPT (NOT live MCP browser clicks -
-  it attaches over CDP to the already-running superpowers-chrome Chrome and blocks
-  until done, spending zero extra tokens on the wait). Do NOT drive Gemini directly via
-  mcp__plugin_superpowers-chrome_chrome__use_browser and do NOT use the dedicated
-  Gemini MCP - both are superseded by the script.
-  RESEARCH_MODE for this run is: $RESEARCH_MODE
-  If RESEARCH_MODE is 'no-gemini', SKIP Phase C entirely and note it in the bundle.
-  See instructions/00-deep-research.md Phase C for the exact invocation and exit-code
-  handling. Exit 1/2 (blocked/no toggle) or exit 3/4/5 after one retry - skip it
-  gracefully; do NOT abort; Exa + Tavily must still produce the bundle.
+- The other phases in instructions/00-deep-research.md (SearXNG, ddgs, Firecrawl) as written.
+- Gemini is retired from Stage 0 (2026-10-14). Do NOT run Gemini Deep Research or
+  gemini-deep-research.py, and do NOT open a browser for research.
 
 ### Step 4: Merge, dedupe, and FACT-CHECK (Phase E)
 Merge into research/${SLUG}-research.md in the required section order. Then fact-check
@@ -585,7 +540,7 @@ Do not skip it, including when a source failed. Format:
 
   <ISO8601 timestamp>\tCALLS\t<slug>\t<source>\tsearches=<n>\tfetches=<n>\tresearch=<n>\tstatus=<ok|partial|quota|error>\tnote=<short>
 
-One line each for exa, tavily, searxng, ddgs, firecrawl, gemini. Use the real counts you
+One line each for exa, tavily, searxng, ddgs, firecrawl. Use the real counts you
 made, not estimates. Set status=quota on any HTTP 432 or 429 and put the exact code in
 note. Append with a single shell command per line; never rewrite the file.
 

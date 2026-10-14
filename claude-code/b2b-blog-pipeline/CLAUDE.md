@@ -37,7 +37,7 @@ Open Claude Code in this folder. Point it at a topic, or at `reference/batch-que
 ### Pipeline Overview
 This workspace contains a blog post creation pipeline: a research stage, 8 content stages, an automated QC pass, and two optional cover stages. Most have an instruction file in `instructions/`. Always read the relevant instruction file before executing any stage.
 
-0. **Multi-Source Research** → `instructions/00-deep-research.md` (Exa, Tavily, DuckDuckGo, SearXNG, Gemini, then a fact-check gate)
+0. **Multi-Source Research** → `instructions/00-deep-research.md` (Exa, Tavily, DuckDuckGo, SearXNG, then a fact-check gate)
 1. **Topic Development** → `instructions/01-topic-development.md`
 2. **Blog Post Writing** → `instructions/02-blog-post-writing.md`
 3. **FAQ and TL;DR Review** → `instructions/03-faq-tldr.md`
@@ -67,7 +67,7 @@ Some posts may be adapted from [YOUR_AGENCY]'s other verticals. When the user pr
 ```
 README.md                           ← Setup guide. Read this on a fresh clone.
 docs/TOOLS.md                       ← Every command-line tool and MCP server, with install steps
-scripts/                            ← blog-pipeline.sh, router, QC, collect, doctor, Gemini helpers
+scripts/                            ← blog-pipeline.sh, router, QC, collect, doctor
 cover-generator/                    ← Stage 10 template covers (fonts, templates, theme)
 services/searxng/                   ← Optional local SearXNG (docker compose)
 .env.example                        ← Settings for the batch script (copy to .env)

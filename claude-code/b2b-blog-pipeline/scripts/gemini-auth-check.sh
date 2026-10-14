@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# RETIRED from blog Stage 0 on 2026-10-14. Kept for manual use only.
 # ============================================================================
 # gemini-auth-check.sh - check that the Google account in the superpowers-chrome
 # browser is signed in to Gemini.

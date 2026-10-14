@@ -36,7 +36,7 @@ Everything runs on your machine through Claude Code. One script runs a whole bat
 
 | Stage | File | What it does | Model (default) |
 |---|---|---|---|
-| 0 | `instructions/00-deep-research.md` | Research from Exa, Tavily, DuckDuckGo, SearXNG and Gemini, merged into one bundle, then a fact-check gate | sonnet |
+| 0 | `instructions/00-deep-research.md` | Research from Exa, Tavily, DuckDuckGo and SearXNG, merged into one bundle, then a fact-check gate | sonnet |
 | 1 | `instructions/01-topic-development.md` | Turns the topic and research into a structured brief | sonnet |
 | 2 | `instructions/02-blog-post-writing.md` | Writes the full draft from the brief | opus |
 | 3 | `instructions/03-faq-tldr.md` | Reviews the FAQ and TL;DR | opus |
@@ -84,7 +84,6 @@ scripts/doctor.sh
 | [DuckDuckGo (ddgs)](docs/TOOLS.md#duckduckgo-ddgs) | free news and web search in Stage 0 (`scripts/ddgs-query.sh`) | logged and skipped |
 | [SearXNG](docs/TOOLS.md#searxng) + [Docker](docs/TOOLS.md#docker) | free metasearch in Stage 0 | logged and skipped |
 | [Firecrawl MCP](docs/TOOLS.md#firecrawl) | cheaper page fetches for the fact-check | Exa does the fetches |
-| [superpowers-chrome](docs/TOOLS.md#superpowers-chrome) + [Playwright](docs/TOOLS.md#python-packages) | Gemini Deep Research in Stage 0 | logged and skipped |
 | [fontTools](docs/TOOLS.md#python-packages), [resvg](docs/TOOLS.md#resvg), [cwebp](docs/TOOLS.md#cwebp) | Stage 10 template covers | no template cover |
 | [Magnific](docs/TOOLS.md#magnific) | Stage 11 AI cover photos | no AI cover |
 | [shellcheck](docs/TOOLS.md#shellcheck) | lint the scripts after edits | |
@@ -121,7 +120,7 @@ scripts/doctor.sh
 
 # 5. Fill in the placeholders and personas (Steps 4-7 below), then add a topic and run
 echo "How [your vertical] companies can win more commercial contracts. Publish Date: 2026-11-04" > inputs/commercial-contracts.md
-scripts/blog-pipeline.sh . no-gemini
+scripts/blog-pipeline.sh .
 ```
 
 ---
@@ -150,7 +149,7 @@ claude mcp add --scope user --transport http tavily "https://mcp.tavily.com/mcp/
 claude mcp list
 ```
 
-Keep the names `exa` and `tavily`: the stage files and the batch script's tool allowlist use them. The optional servers (DuckDuckGo, SearXNG, Firecrawl, superpowers-chrome) are in [docs/TOOLS.md](docs/TOOLS.md).
+Keep the names `exa` and `tavily`: the stage files and the batch script's tool allowlist use them. The optional servers (DuckDuckGo, SearXNG, Firecrawl) are in [docs/TOOLS.md](docs/TOOLS.md).
 
 Your API keys live in Claude Code's own configuration (`~/.claude.json`), never in this repo.
 
@@ -244,10 +243,6 @@ Details: [cover-generator/README.md](cover-generator/README.md). To turn Stage 1
 
 Connect [Magnific](docs/TOOLS.md#magnific), then set `**AI cover:** on` in `reference/image-settings.md`. Stage 11 runs only in an interactive session.
 
-### Step 10. Set up Gemini Deep Research (Optional, Stage 0)
-
-Install the [superpowers-chrome](docs/TOOLS.md#superpowers-chrome) plugin, sign in to Google once in its browser, and install Playwright. Then `scripts/gemini-auth-check.sh` should print `LOGGED IN`. Until then, run the pipeline with `no-gemini`.
-
 ---
 
 ## Running the pipeline
@@ -270,7 +265,6 @@ Add `Publish Date: YYYY-MM-DD` to a seed or brief, or a Publish Date column to a
 
 ```bash
 scripts/blog-pipeline.sh                     # every topic in inputs/, all research sources
-scripts/blog-pipeline.sh . no-gemini         # skip the Gemini browser pass
 scripts/blog-pipeline.sh . all skip-router   # rerun with the last manifest
 ```
 
@@ -318,19 +312,17 @@ All optional. Put them in `.env` (copy `.env.example`) or export them in your sh
 
 | Variable | Default | What it does |
 |---|---|---|
-| `BLOG_MODEL_STANDARD` | `sonnet` | Stages 1, 5, 6, 7 and the Gemini login check |
+| `BLOG_MODEL_STANDARD` | `sonnet` | Stages 1, 5, 6, 7 |
 | `BLOG_MODEL_WRITING` | `opus` | Stages 2, 3, 4, 8 |
 | `BLOG_MODEL_RESEARCH` | `sonnet` | Stage 0 |
 | `BLOG_PERMISSION_MODE` | `allowlist` | `allowlist` or `bypass`. See [Safety](#safety-and-privacy). |
 | `BLOG_ALLOWED_TOOLS` | built-in list | Space-separated tools the headless stages may use |
 | `BLOG_CLAUDE_EXTRA_ARGS` | | Extra flags for every `claude` call |
-| `BLOG_RESEARCH_MODE` | `all` | `all` or `no-gemini` |
 | `BLOG_STAGE_TIMEOUT` | `3h` | Time limit per stage (needs `timeout` or `gtimeout`) |
 | `BLOG_SLEEP_*` | 30-120 s | Pauses between stages and jobs |
 | `BLOG_LOG_DIR` | `logs/` | Where logs go |
 | `SEARXNG_URL` | `http://localhost:8888` | Your SearXNG |
 | `FIRECRAWL_URL` | | Your self-hosted Firecrawl, for `doctor.sh` |
-| `CHROME_CDP_PORT` | auto | Chrome debug port for the Gemini script |
 
 `reference/image-settings.md` switches Stage 10 and Stage 11 on and off.
 
@@ -349,7 +341,7 @@ personas/                    Writer voices (create writer-profiles.md from the t
 prompts/                     Paste-in prompts that build your personas
 reference/                   Style, sources, competitors, personas, CTA rules, image settings
   image-rules/               Stage 11 photo and alt-text rules
-scripts/                     blog-pipeline.sh, doctor.sh, router, QC, collect, Gemini, SearXNG
+scripts/                     blog-pipeline.sh, doctor.sh, router, QC, collect, SearXNG
 cover-generator/             Stage 10: theme.json, layouts.json, templates/, fonts/ (OFL)
 services/searxng/            Optional local SearXNG (docker compose)
 briefs/                      Brief template (your briefs are gitignored)
@@ -370,8 +362,6 @@ logs/                        Run logs, audit CSVs, API usage, slug map (gitignor
 | `no files in inputs/` | Add a topic file. `README.md` and hidden files don't count. |
 | Stage 0 bundle is thin or fails | Check `claude mcp list`: Exa and Tavily must be connected. Check your API credits. |
 | A stage logs tool refusals | The allowlist blocked a tool. Add it to `BLOG_ALLOWED_TOOLS` (for example an MCP server you named differently), or use `bypass` if you accept the risk. |
-| `Gemini is signed out` | Sign in again in the superpowers-chrome browser, or run with `no-gemini`. |
-| `the Gemini login check could not run` | The run goes on without Gemini. Run `scripts/gemini-auth-check.sh` by hand to see why. |
 | `SESSION LIMIT detected` | Your Claude usage window closed. Rerun later. Finished jobs are kept. |
 | `STAGE N PRODUCED NO FILE` | The stage ran but saved nothing. Read that stage's section in `logs/blog-pipeline-*.log`. |
 | SearXNG returns no results | Its search engines are answering with CAPTCHAs. See [docs/TOOLS.md](docs/TOOLS.md#searxng). |
@@ -385,7 +375,6 @@ logs/                        Run logs, audit CSVs, API usage, slug map (gitignor
 - **Permissions.** Unattended stages can't ask before they act. By default they may only edit files, search and fetch the web, run a short list of shell commands, and call the research servers. `BLOG_PERMISSION_MODE=bypass` removes every check (`--dangerously-skip-permissions`). Use it only on a machine you'd let an unattended agent control.
 - **Your work stays out of git.** `.gitignore` excludes `inputs/`, `output/`, `posts/`, `research/`, your briefs, `reports/`, `logs/` and `.env`. Check `git status` before every commit anyway.
 - **Keys.** API keys live in your Claude Code MCP configuration, never in this folder.
-- **Gemini.** The login check never writes your Google account email to disk. If a Gemini run fails, the script saves a screenshot and page HTML to `logs/gemini-failures/` for debugging. They show your signed-in page, so don't share them.
 - **Your clone.** Once you fill in personas, competitors and client details, keep your clone in a private repository.
 
 ---
