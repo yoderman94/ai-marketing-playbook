@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `VERSION` to `1.0.0` and start a fresh changelog for that vertical. The
 > entries below track the template itself, not any cloned pipeline.
 
+## [2.3.1] - 2026-11-16
+
+### Changed
+- `qc-ai-tells.py`: the lists-of-three warning starts at 1 per 100 words (was 1 per 150). At 150 it fired on
+  almost half of the real posts tested, so people stopped reading it.
+
 ## [2.3.0] - 2026-11-16
 
 ### Added

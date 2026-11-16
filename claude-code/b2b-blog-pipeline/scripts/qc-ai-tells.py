@@ -173,10 +173,10 @@ def scan(text: str) -> tuple[list, list, dict]:
         triplets += len(TRIPLET.findall(line))
         if BOLD_LABEL.match(raw):
             bold += 1
-    limit_trip = max(3, words // 150)  # tuned on 15 real posts 2026-11-16: humans use some
+    limit_trip = max(3, words // 100)  # 1 per 100 words: warns on 7 of 101 posts (2026-11-16); 1 per 150 warned on 47
     if triplets > limit_trip:
         warns.append({"rule": "lists of three", "line": 0,
-                      "text": "%d 'A, B and C' lists, limit %d (1 per 150 words) for %d words. Use 2 or 4 items when that's what the facts are." % (triplets, limit_trip, words)})
+                      "text": "%d 'A, B and C' lists, limit %d (1 per 100 words) for %d words. Use 2 or 4 items when that's what the facts are." % (triplets, limit_trip, words)})
     if bold > 10:
         warns.append({"rule": "bold-label bullets", "line": 0,
                       "text": "%d '**Label:** text' bullets. Keep them for lists of real named items only." % bold})
@@ -234,7 +234,7 @@ def writer_rules() -> str:
         "- Warning, avoid these shapes: \"it's not X, it's Y\"; \"This isn't X. It's Y.\"; a one-word rhetorical question "
         "such as \"The result?\" or \"The catch?\".",
         "- Warning, never use a stock heading: " + q(sorted(STOCK_HEADINGS)) + ". Write a heading that says what the section proves.",
-        "- Warning: no more than 1 \"A, B and C\" list per 150 words. Use 2 or 4 items when that's what the facts are.",
+        "- Warning: no more than 1 \"A, B and C\" list per 100 words. Use 2 or 4 items when that's what the facts are.",
         "- Warning: no more than 10 \"**Label:** text\" bullets in a post. Keep them for lists of real named items.",
         "- Quoted dialogue and blockquotes are exempt.",
     ])
