@@ -303,6 +303,7 @@ Lints the shell scripts. Run it after you edit one: `shellcheck -S warning scrip
 | `scripts/qc-prohibited-scan.py` | Banned words and phrases from `reference/prohibited-phrases.md` | Python stdlib |
 | `scripts/qc-readability.py` | Reading grade, sentence length, em dashes, passive voice | `textstat` |
 | `scripts/qc-structure-check.py` | Heading levels, bold-as-heading, other structure rules | Python stdlib |
+| `scripts/qc-ai-tells.py` | AI tells: cleans pasted chat leftovers (hidden characters, citation markers, `utm_source=chatgpt.com`), FAILs chatbot text, warns on AI patterns. Also prints the writer rules for Stages 2 and 3 (`--rules`) | Python stdlib |
 | `scripts/collect-post.py` | Moves a finished post's files into `posts/<date>-<slug>/` | Python stdlib |
 | `scripts/gemini-auth-check.sh`, `scripts/gemini-deep-research.py` | Retired 2026-10-14 with Gemini; kept for manual use only | |
 | `scripts/searxng-query.sh` | Queries SearXNG from the shell | `curl`, `python3`, `docker` |

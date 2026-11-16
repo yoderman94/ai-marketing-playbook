@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > `VERSION` to `1.0.0` and start a fresh changelog for that vertical. The
 > entries below track the template itself, not any cloned pipeline.
 
+## [2.3.0] - 2026-11-16
+
+### Added
+- `scripts/qc-ai-tells.py`, one file for AI-tell rules. Stage 9 (`qc.sh`) runs it before the other scans:
+  - It removes paste leftovers from the draft by itself and lists each fix: hidden characters (zero-width,
+    soft hyphen, odd spaces), ChatGPT citation markers (oaicite, contentReference, turn0search) and AI
+    `utm_source` tags.
+  - Chatbot text a person must rewrite ("Sure! Here's a draft", "I'd be happy to", "let me know if you")
+    is a FAIL.
+  - "It's not X, it's Y", "The result?", stock headings (Key Takeaways, Final Thoughts), "in this article",
+    too many lists of three and too many bold-label bullets are warnings.
+- Stages 2 and 3 put the same rules in the writer prompt (`qc-ai-tells.py --rules`), so the writer and the
+  QC never disagree. Without the file, both skip it and the run continues.
+
 ## [2.2.0] - 2026-10-14
 
 ### Removed

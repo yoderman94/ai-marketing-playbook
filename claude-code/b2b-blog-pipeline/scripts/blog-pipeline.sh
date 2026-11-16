@@ -53,6 +53,13 @@ case "${1:-}" in
 esac
 
 SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# AI-tell rules for the writer (2026-11-16). The writer prompt and the Stage 9 QC read the same
+# lists from one shared file, so they can't disagree. Missing file = no rules block, run continues.
+AI_TELL_RULES=""
+for _c in "$SCRIPTS_DIR/qc-ai-tells.py"; do
+  if [ -f "$_c" ]; then AI_TELL_RULES=$(python3 "$_c" --rules 2>/dev/null || true); break; fi
+done
 REPO_ROOT="$(cd "$SCRIPTS_DIR/.." && pwd)"
 
 PROJECT_ARG="${1:-$REPO_ROOT}"
@@ -656,6 +663,9 @@ Read briefs/${SLUG}-brief.md.
 - reference/fictional-companies.md
 Note any missing files and continue.
 
+### AI tells to avoid
+${AI_TELL_RULES}
+
 ### Step 4: Check for research
 Check research/ for prior research files. Integrate findings if present.
 
@@ -692,6 +702,7 @@ CRITICAL RULES:
 
 ### Step 1: Read instructions
 Read instructions/03-faq-tldr.md in full. Follow every rule.
+${AI_TELL_RULES}
 
 ### Step 2: Read draft
 Read output/${DATE_SLUG}-draft.md.
